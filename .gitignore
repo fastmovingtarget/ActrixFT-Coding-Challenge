@@ -1,3 +1,7 @@
+# Overlarge Data Files
+./PythonBackend/Data/
+./PythonBackend/yields.db
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -205,3 +209,16 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+PythonBackend/Data/Bank of England  Database (1).csv
+PythonBackend/Data/Bank of England  Database (2).csv
+PythonBackend/Data/Bank of England  Database.csv
+PythonBackend/Data/DGS1.csv
+PythonBackend/Data/DGS1MO.csv
+PythonBackend/Data/DGS2.csv
+PythonBackend/Data/DGS3MO.csv
+PythonBackend/Data/DGS5.csv
+PythonBackend/Data/DGS6MO.csv
+PythonBackend/Data/DGS10.csv
+PythonBackend/Data/DGS20.csv
+PythonBackend/Data/DGS30.csv
+PythonBackend/yields.db
