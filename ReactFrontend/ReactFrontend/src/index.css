@@ -6,11 +6,15 @@
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
   background-color: #242424;
+  background: linear-gradient(to left top, #242424, #353535);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  margin:0px;
+
 }
 
 a {
@@ -53,6 +57,9 @@ button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
+button.active{
+  background-color: #535bf2;
+}
 
 @media (prefers-color-scheme: light) {
   :root {
@@ -65,4 +72,35 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+}
+
+.body-container{
+  height:90%;
+}
+.main-container{
+  height:50%;
+}
+
+.row{
+  display:flex;
+  flex-direction:row;
+  justify-content: space-around;
+  align-items: center;
+  &.main-container{
+    width:100%;
+  }
+}
+.column{
+  display:flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  &.graph-container{
+    height:80%;
+    width:50vw;
+  }
+}
+
+input{
+  margin:10px;
 }
