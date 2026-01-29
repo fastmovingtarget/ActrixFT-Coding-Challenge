@@ -85,9 +85,10 @@ def latest():
     dbcon = sqlite3.connect('yields.db')
     cursor = dbcon.cursor()
 
-    maturity = 2.8
+    maturity = request.args.get('maturity', '10')
+    country = request.args.get('country', 'US')
 
-    result = cursor.execute('SELECT Maturity, Yield, Date FROM yields WHERE Country = "US" ORDER BY Date DESC LIMIT 9').fetchall()
+    result = cursor.execute('SELECT Maturity, Yield, Date FROM yields WHERE Country = ? ORDER BY Date DESC LIMIT 9', [country]).fetchall()
 
     date = result[0][2]
 
@@ -96,7 +97,7 @@ def latest():
 
     nspopt, pcov = curve_fit(calculate_ns, xdata, ydata, p0=[0.02, 0.01, 0.01, 1.0])
 
-    ns_maturity_yield = calculate_ns(maturity, nspopt[0], nspopt[1], nspopt[2], nspopt[3])
+    ns_maturity_yield = calculate_ns(float(maturity), nspopt[0], nspopt[1], nspopt[2], nspopt[3])
 
     response = {
             "date":date,
