@@ -105,9 +105,6 @@ def find_yield(maturity, xdata, ydata):
         yield_out = calculate_linear(float(maturity), linpopt[0], linpopt[1]).round(4)
 
     return yield_out
-
-    
-                        
                     
 with app.app_context():
     initialise_db()
@@ -152,11 +149,11 @@ def latest():
 
 @app.route("/timeseries")
 def timeseries():
-    print("Time Series")
     maturity = request.args.get('maturity', '10')
     country = request.args.get('country', 'US')
     start_date = request.args.get('start_date', '2026-01-10')
     end_date = request.args.get('end_date', datetime.today().strftime('%Y-%m-%d'))
+    print(f'Time Series: Maturity: {maturity}, Country: {country}, Start Date: {start_date}, End Date: {end_date}')
 
     dbcon = sqlite3.connect('yields.db')
     cursor = dbcon.cursor()
@@ -177,11 +174,15 @@ def timeseries():
     for date_set in result:
         xdata = json.loads(date_set[0])
         ydata = json.loads(date_set[1])
-        maturity_yield = find_yield(maturity, xdata, ydata)
-        date_data.append({
-            "Date": date_set[2],
-            "Yield": f'{maturity_yield}'
-        })
+        try:
+            maturity_yield = find_yield(maturity, xdata, ydata)
+        except:
+            print(f"An error occurred with the {country} data on {date_set[2]}")
+        else:
+            date_data.append({
+                "Date": date_set[2],
+                "Yield": f'{maturity_yield}'
+            })
 
     response = {
             "Country":country,
