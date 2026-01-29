@@ -11,15 +11,16 @@ def initialise_db():
     dbcon = sqlite3.connect('yields.db')
     cursor = dbcon.cursor()
 
+    # Check to see if the database has already be initialised, return if it has
     res = cursor.execute(f'SELECT name FROM sqlite_master')
     if res.fetchone() is not None:
         print("Database already initialised")
         return
 
-    cursor.execute("CREATE TABLE IF NOT EXISTS yields (Date TEXT, Country TEXT, Instrument TEXT, Maturity REAL, Yield REAL)")
+    cursor.execute("CREATE TABLE yields (Date TEXT, Country TEXT, Instrument TEXT, Maturity REAL, Yield REAL)")
 
+    # Check through every file in ./Data
     for file in os.listdir('./Data'):
-        print(f'Reading File: {file}')
         with open(f'./Data/{file}', 'r') as fileData:
             dr = csv.DictReader(fileData, fieldnames=['Date', 'Yield'])
             to_db = []
@@ -64,9 +65,10 @@ def initialise_db():
                         
                     print(f'Country: {country}, Instrument: {instrument}, Maturity: {maturity}')
                 
+                # Just don't read the values that are blank/null
                 elif i['Yield'] != '':
+                    # UK dates are NOT in ISO format, so we have to strip and reformat them
                     if country == "UK":
-                        print("UK Date, reformatting:")
                         newDate = datetime.strptime(i['Date'], "%d %b %y").strftime("%Y-%m-%d")
                         print(newDate)
                         to_db.append((newDate, country, instrument, maturity, float(i['Yield'])))
@@ -90,6 +92,7 @@ def calculate_linear(maturity, grad, const):
     )
     return maturity_yield
 
+# finds the yield for a given maturity and dataset (which is a function of Date)
 def find_yield(maturity, xdata, ydata):
     yield_out = 0.0
     #check to see if the requested maturity is in the data set, if it is then we don't have to worry about extrapolating/interpolating
@@ -97,6 +100,7 @@ def find_yield(maturity, xdata, ydata):
         if xdata[i] == float(maturity):
             return ydata[i]
         
+    # The Brits don't really give enough useful data (only 3 points) to plot a complex NS interpolation curve. They get a simple linear curve instead
     if(len(xdata) > 3):
         nspopt, pcov = curve_fit(calculate_ns, xdata, ydata, p0=[0.02, 0.01, 0.01, 1.0])
         yield_out = calculate_ns(float(maturity), nspopt[0], nspopt[1], nspopt[2], nspopt[3]).round(4)
@@ -106,6 +110,7 @@ def find_yield(maturity, xdata, ydata):
 
     return yield_out
 
+# Finds the fit constants and the curve type
 def find_fit(xdata, ydata):
     if(len(xdata) > 3):
         nspopt, pcov = curve_fit(calculate_ns, xdata, ydata, p0=[0.02, 0.01, 0.01, 1.0])
@@ -159,6 +164,7 @@ def latest():
             
     return response
 
+# I wanted to draw the currently used regression curve in the client, so I put in a function to find the fit curve equation
 @app.route('/latestfit')
 def latestfit():
     dbcon = sqlite3.connect('yields.db')
@@ -192,7 +198,6 @@ def timeseries():
     country = request.args.get('country', 'US')
     start_date = request.args.get('start_date', '2026-01-10')
     end_date = request.args.get('end_date', datetime.today().strftime('%Y-%m-%d'))
-    print(f'Time Series: Maturity: {maturity}, Country: {country}, Start Date: {start_date}, End Date: {end_date}')
 
     dbcon = sqlite3.connect('yields.db')
     cursor = dbcon.cursor()
