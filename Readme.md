@@ -3,25 +3,27 @@
 
 ## Installation Instructions:
  - install python packages:
-    ```console
+    ```bash
         user@pc ~ActrixFT-Coding-Challenge $ cd PythonBackend
         user@pc ~ActrixFT-Coding-Challenge/PythonBackend $ pip install flask
         user@pc ~ActrixFT-Coding-Challenge/PythonBackend $ pip install flask_cors
         user@pc ~ActrixFT-Coding-Challenge/PythonBackend $ pip install scipy
     ```
  - install React Packages:
-    ```console
+    ```bash
         user@pc ~ActrixFT-Coding-Challenge $ cd ReactFrontend/ReactFrontend
         user@pc ~ActrixFT-Coding-Challenge/ReactFrontend/ReactFrontend $ npm install --save chart.js react-chartjs-2
     ```
 
 ## To Run
-    ```console
-        user@pc ~ActrixFT-Coding-Challenge/PythonBackend $ flask --app API.py run
-    ```
-    ```console
-        user@pc ~ActrixFT-Coding-Challenge/ReactFrontend/ReactFrontend $ npx vite dev
-    ```
+    -Python:
+        ```bash
+            user@pc ~ActrixFT-Coding-Challenge/PythonBackend $ flask --app API.py run
+        ```
+    -React:
+        ```bash
+            user@pc ~ActrixFT-Coding-Challenge/ReactFrontend/ReactFrontend $ npx vite dev
+        ```
 
 ## Planning
 ### API
@@ -72,7 +74,6 @@
     
     
 ### React Frontend
-    - I'll have to swallow a little bit of pride and rush this out - the backend is more important right now
     - /latest: 
         - Buttons for the US/UK setting, and a numerical form for the requested maturity
         - On initial load, fetch data for /latest using default settings just as an example
@@ -100,3 +101,27 @@
         - return the fit constants for the latest date and the data points to be used in the scatter - 15 mins
         - Plot the graph out in Chart.js - 1 hour
     - finish up, test and polish - 1 hour 45 mins
+
+
+## Implementation
+    - Performing the initial project setup and data read was simple but time-consuming.
+        - CSV Data is read from files in ./PythonBackend/Data 
+        - I chose to parse the Country/Instrument/Maturity values from the csv file's headers
+        - The UK dates needed reformatting into ISO (YYYY-MM-DD) for SQLite's Date functions to work
+    - /latest
+        - I ended up using defaults of Country=US and Maturity=10 for the latest, both in React and in Python
+        - Putting together the initial /latest request went fairly smoothly, but even being familiar with it React takes a lot of time to code up
+        - I also had some issues with CORS that required an additional package install, but with that it was easy to solve
+    - /timeseries 
+        - fit curve code went in surprisingly easily - I'd done a lot of research on how to work it during my preparation
+        - I ended up changing how I was querying the database - grouping the entries by date and 
+        aggregating the Maturities and Yields into JSON arrays made for a much more efficient query than 
+        just grabbing everything and LIMITing it to the number of data points needed
+        - Interesting Error : fit_curve does not like the entry on October 1st 2022 SPECIFICALLY, I put in some generic error handling but that date
+         was the only one that triggered it
+        - Chart.js is once again both fun to work with and incredibly obtuse to start using
+    - /latestfit
+        - During I was having trouble visualising how the fits were looking, so I decided to add in a graph to show how the interpolated values for the /latest query were found
+        - It also balances well visually, allowing both the /latest and /timeseries sections to have nice graphs to them
+    - Styling
+        - I find it best to style when I've got everything on the page that I need - styling's relaxing, but easy to lose track of time
