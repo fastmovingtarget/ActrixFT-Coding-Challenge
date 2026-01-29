@@ -148,8 +148,6 @@ def latest():
             GROUP BY Date
             ORDER BY Date DESC LIMIT 1''', [country]).fetchall()[0]#there's only 1 result, so we can specify the first result here
 
-    print (result)
-
     xdata = json.loads(result[0])
     ydata = json.loads(result[1])
 
@@ -182,13 +180,10 @@ def latestfit():
             GROUP BY Date
             ORDER BY Date DESC LIMIT 1''', [country]).fetchall()[0]#there's only 1 result, so we can specify the first result here
 
-    print (result)
-
     xdata = json.loads(result[0])
     ydata = json.loads(result[1])
 
     fit = find_fit(xdata, ydata)
-    print(fit)
 
     return fit
 
