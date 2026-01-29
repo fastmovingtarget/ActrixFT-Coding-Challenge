@@ -1,4 +1,4 @@
-import sqlite3, csv, os, numpy as np
+import sqlite3, csv, os, json, numpy as np
 from flask import Flask, request
 from flask_cors import CORS
 from scipy.optimize import curve_fit
@@ -82,6 +82,31 @@ def calculate_ns(maturity, b0, b1, b2, lm0):
         b1 * ((1 - np.exp(-maturity / lm0)) / (maturity / lm0)) + 
         b2 * (((1 - np.exp(-maturity / lm0)) / (maturity / lm0)) - np.exp(-maturity / lm0)))
     return maturity_yield
+
+def calculate_linear(maturity, grad, const):
+    maturity_yield = (
+        const + 
+        maturity*grad
+    )
+    return maturity_yield
+
+def find_yield(maturity, xdata, ydata):
+    yield_out = 0.0
+    #check to see if the requested maturity is in the data set, if it is then we don't have to worry about extrapolating/interpolating
+    for i in range(len(xdata)):
+        if xdata[i] == float(maturity):
+            return ydata[i]
+        
+    if(len(xdata) > 3):
+        nspopt, pcov = curve_fit(calculate_ns, xdata, ydata, p0=[0.02, 0.01, 0.01, 1.0])
+        yield_out = calculate_ns(float(maturity), nspopt[0], nspopt[1], nspopt[2], nspopt[3]).round(4)
+    else: 
+        linpopt, pcov = curve_fit(calculate_linear, xdata, ydata, p0=[0.02, 0.01])
+        yield_out = calculate_linear(float(maturity), linpopt[0], linpopt[1]).round(4)
+
+    return yield_out
+
+    
                         
                     
 with app.app_context():
@@ -96,27 +121,78 @@ def latest():
     maturity = request.args.get('maturity', '10')
     country = request.args.get('country', 'US')
 
-    result = cursor.execute('SELECT Maturity, Yield, Date FROM yields WHERE Country = ? ORDER BY Date DESC LIMIT 9', [country]).fetchall()
+    result = cursor.execute(
+        ''' SELECT 
+                json_group_array(Maturity) Maturities, 
+                json_group_array(Yield) Yields, 
+                Date 
+            FROM yields 
+            WHERE Country = ? 
+            GROUP BY Date
+            ORDER BY Date DESC LIMIT 1''', [country]).fetchall()[0]#there's only 1 result, so we can specify the first result here
 
-    date = result[0][2]
+    print (result)
 
-    xdata = np.array([point[0] for point in result])
-    ydata = np.array([point[1] for point in result])
+    xdata = json.loads(result[0])
+    ydata = json.loads(result[1])
 
-    nspopt, pcov = curve_fit(calculate_ns, xdata, ydata, p0=[0.02, 0.01, 0.01, 1.0])
+    print(xdata)
+    print(ydata)
 
-    ns_maturity_yield = calculate_ns(float(maturity), nspopt[0], nspopt[1], nspopt[2], nspopt[3]).round(4)
+    maturity_yield = find_yield(maturity, xdata, ydata)
 
     response = {
-            "Date":date,
-            "Country":"US",
+            "Date":result[2],
+            "Country":country,
             "Maturity":maturity,
-            "Yield": f'{ns_maturity_yield}'
+            "Yield": f'{maturity_yield}'
         }
-    
-    print(response)
-        
+            
     return response
+
+@app.route("/timeseries")
+def timeseries():
+    print("Time Series")
+    maturity = request.args.get('maturity', '10')
+    country = request.args.get('country', 'US')
+    start_date = request.args.get('start_date', '2026-01-10')
+    end_date = request.args.get('end_date', datetime.today().strftime('%Y-%m-%d'))
+
+    dbcon = sqlite3.connect('yields.db')
+    cursor = dbcon.cursor()
+
+    result = cursor.execute(
+        '''SELECT 
+            json_group_array(Maturity) Maturities,
+            json_group_array(Yield) Yields,
+            Date 
+            FROM yields 
+            WHERE Country = ? 
+            AND DATE BETWEEN ? AND ?
+            GROUP BY Date
+            ORDER BY Date DESC''', [country, start_date, end_date]).fetchall()
+    
+    date_data = []
+
+    for date_set in result:
+        xdata = json.loads(date_set[0])
+        ydata = json.loads(date_set[1])
+        maturity_yield = find_yield(maturity, xdata, ydata)
+        date_data.append({
+            "Date": date_set[2],
+            "Yield": f'{maturity_yield}'
+        })
+
+    response = {
+            "Country":country,
+            "Maturity":maturity,
+            "Data":date_data
+    }
+
+
+    return response
+
+
 
 
 
