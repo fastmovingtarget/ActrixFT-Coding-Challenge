@@ -1,6 +1,28 @@
 # ActixFT Technical Test
 ## James Alport
 
+## Installation Instructions:
+ - install python packages:
+    ```console
+        user@pc ~ActrixFT-Coding-Challenge $ cd PythonBackend
+        user@pc ~ActrixFT-Coding-Challenge/PythonBackend $ pip install flask
+        user@pc ~ActrixFT-Coding-Challenge/PythonBackend $ pip install flask_cors
+        user@pc ~ActrixFT-Coding-Challenge/PythonBackend $ pip install scipy
+    ```
+ - install React Packages:
+    ```console
+        user@pc ~ActrixFT-Coding-Challenge $ cd ReactFrontend/ReactFrontend
+        user@pc ~ActrixFT-Coding-Challenge/ReactFrontend/ReactFrontend $ npm install --save chart.js react-chartjs-2
+    ```
+
+## To Run
+    ```console
+        user@pc ~ActrixFT-Coding-Challenge/PythonBackend $ flask --app API.py run
+    ```
+    ```console
+        user@pc ~ActrixFT-Coding-Challenge/ReactFrontend/ReactFrontend $ npx vite dev
+    ```
+
 ## Planning
 ### API
     - Python

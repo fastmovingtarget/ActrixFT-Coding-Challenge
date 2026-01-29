@@ -105,6 +105,21 @@ def find_yield(maturity, xdata, ydata):
         yield_out = calculate_linear(float(maturity), linpopt[0], linpopt[1]).round(4)
 
     return yield_out
+
+def find_fit(xdata, ydata):
+    if(len(xdata) > 3):
+        nspopt, pcov = curve_fit(calculate_ns, xdata, ydata, p0=[0.02, 0.01, 0.01, 1.0])
+        return {
+            "Curve":"ns",
+            "Constants":[f'{nspopt[0]}', f'{nspopt[1]}', f'{nspopt[2]}', f'{nspopt[3]}']
+        }
+    else: 
+        linpopt, pcov = curve_fit(calculate_linear, xdata, ydata, p0=[0.02, 0.01])
+        return {
+            "Curve":"linear",
+            "Constants":[linpopt[0], linpopt[1]]
+        }
+
                     
 with app.app_context():
     initialise_db()
@@ -133,9 +148,6 @@ def latest():
     xdata = json.loads(result[0])
     ydata = json.loads(result[1])
 
-    print(xdata)
-    print(ydata)
-
     maturity_yield = find_yield(maturity, xdata, ydata)
 
     response = {
@@ -146,6 +158,33 @@ def latest():
         }
             
     return response
+
+@app.route('/latestfit')
+def latestfit():
+    dbcon = sqlite3.connect('yields.db')
+    cursor = dbcon.cursor()
+
+    country = request.args.get('country', 'US')
+
+    result = cursor.execute(
+        ''' SELECT 
+                json_group_array(Maturity) Maturities, 
+                json_group_array(Yield) Yields, 
+                Date 
+            FROM yields 
+            WHERE Country = ? 
+            GROUP BY Date
+            ORDER BY Date DESC LIMIT 1''', [country]).fetchall()[0]#there's only 1 result, so we can specify the first result here
+
+    print (result)
+
+    xdata = json.loads(result[0])
+    ydata = json.loads(result[1])
+
+    fit = find_fit(xdata, ydata)
+    print(fit)
+
+    return fit
 
 @app.route("/timeseries")
 def timeseries():

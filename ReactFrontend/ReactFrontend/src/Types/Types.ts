@@ -5,6 +5,11 @@ export interface Latest {
     Yield : number
 }
 
+export interface LatestFit {
+    Curve: 'ns' | 'linear',
+    Constants: number[]
+}
+
 export interface TimeSeries {
     Country : "US" | "UK",
     Maturity : number,
