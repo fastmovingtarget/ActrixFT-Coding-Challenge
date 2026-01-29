@@ -5,6 +5,8 @@
  - install python packages:
     ```bash
         user@pc ~ActrixFT-Coding-Challenge $ cd PythonBackend
+        user@pc ~ActrixFT-Coding-Challenge/PythonBackend $ python -m venv .venv
+        user@pc ~ActrixFT-Coding-Challenge/PythonBackend $ source .venv/Scripts/activate
         user@pc ~ActrixFT-Coding-Challenge/PythonBackend $ pip install flask
         user@pc ~ActrixFT-Coding-Challenge/PythonBackend $ pip install flask_cors
         user@pc ~ActrixFT-Coding-Challenge/PythonBackend $ pip install scipy
