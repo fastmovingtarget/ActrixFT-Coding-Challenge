@@ -1,9 +1,11 @@
 import sqlite3, csv, os, numpy as np
 from flask import Flask, request
+from flask_cors import CORS
 from scipy.optimize import curve_fit
 from datetime import datetime
 
 app = Flask(__name__)
+CORS(app)
 
 def initialise_db():
     dbcon = sqlite3.connect('yields.db')
@@ -63,7 +65,13 @@ def initialise_db():
                     print(f'Country: {country}, Instrument: {instrument}, Maturity: {maturity}')
                 
                 elif i['Yield'] != '':
-                    to_db.append((i['Date'], country, instrument, maturity, float(i['Yield'])))
+                    if country == "UK":
+                        print("UK Date, reformatting:")
+                        newDate = datetime.strptime(i['Date'], "%d %b %y").strftime("%Y-%m-%d")
+                        print(newDate)
+                        to_db.append((newDate, country, instrument, maturity, float(i['Yield'])))
+                    else:
+                        to_db.append((i['Date'], country, instrument, maturity, float(i['Yield'])))
 
             cursor.executemany("INSERT INTO yields VALUES(?, ?, ?, ?, ?)", to_db)
             dbcon.commit()
@@ -97,15 +105,17 @@ def latest():
 
     nspopt, pcov = curve_fit(calculate_ns, xdata, ydata, p0=[0.02, 0.01, 0.01, 1.0])
 
-    ns_maturity_yield = calculate_ns(float(maturity), nspopt[0], nspopt[1], nspopt[2], nspopt[3])
+    ns_maturity_yield = calculate_ns(float(maturity), nspopt[0], nspopt[1], nspopt[2], nspopt[3]).round(4)
 
     response = {
-            "date":date,
-            "country":"US",
-            "maturity":maturity,
-            "yield":ns_maturity_yield.round(4)
+            "Date":date,
+            "Country":"US",
+            "Maturity":maturity,
+            "Yield": f'{ns_maturity_yield}'
         }
     
+    print(response)
+        
     return response
 
 
