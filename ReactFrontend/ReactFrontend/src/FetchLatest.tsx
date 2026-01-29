@@ -7,7 +7,6 @@ export const fetchLatest = async (
 ) => {
 
     const returnPromise = new Promise<'Success' | 'Failure'>((resolve) => {
-        console.log("Getting Data")
         fetch(
             `http://localhost:5000/latest?country=${country}&maturity=${maturity}`,
             {
@@ -18,7 +17,6 @@ export const fetchLatest = async (
             }
         ).then((rawData) => {
             rawData.json().then((data : Latest) => {
-                console.log(data)
                 setYield(data)
                 resolve("Success")
             })

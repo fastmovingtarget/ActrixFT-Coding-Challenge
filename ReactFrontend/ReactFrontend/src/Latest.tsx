@@ -13,6 +13,7 @@ export function Latest(){
     useEffect(() => {
         fetchLatestFit(country, setLatestFit)
     },[country])
+    
     useEffect(() => {
         fetchLatest("US", 10.0, setLatest)
     }, [])

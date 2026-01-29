@@ -52,7 +52,7 @@ export default function LatestFitGraph ({latestFit} : {latestFit : LatestFit}) {
             )
     }
 
-    const dataset = new Array(600).fill(0).map((element, index) => {
+    const dataset = new Array(600).fill(0).map((_, index) => {
         const maturity = (index + 1)/12;
         const m_yield = findYield(maturity)
         return [maturity.toFixed(2), m_yield]
