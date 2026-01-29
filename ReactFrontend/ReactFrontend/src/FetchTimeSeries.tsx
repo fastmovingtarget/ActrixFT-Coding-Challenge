@@ -1,15 +1,18 @@
-import {type Latest } from "./Types/Types"
+import {type TimeSeries } from "./Types/Types"
 
-export const fetchLatest = async (
+export const fetchTimeSeries = async (
     country : 'US' | 'UK',
     maturity  : number,
-    setYield : React.Dispatch<React.SetStateAction<Latest | null>>
+    startDate : Date,
+    endDate : Date,
+    setTimeSeries : React.Dispatch<React.SetStateAction<TimeSeries | null>>
 ) => {
 
     const returnPromise = new Promise<'Success' | 'Failure'>((resolve) => {
         console.log("Getting Data")
+        
         fetch(
-            `http://localhost:5000/latest?country=${country}&maturity=${maturity}`,
+            `http://localhost:5000/timeseries?country=${country}&maturity=${maturity}&start_date=${startDate.toISOString().substring(0,10)}&end_date=${endDate.toISOString().substring(0,10)}`,
             {
                 method: "GET",
                 headers: {
@@ -17,9 +20,9 @@ export const fetchLatest = async (
                 }
             }
         ).then((rawData) => {
-            rawData.json().then((data : Latest) => {
+            rawData.json().then((data) => {
                 console.log(data)
-                setYield(data)
+                setTimeSeries(data)
                 resolve("Success")
             })
         })
