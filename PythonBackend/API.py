@@ -2,7 +2,7 @@ import sqlite3, csv, os, json, numpy as np
 from flask import Flask, request
 from flask_cors import CORS
 from scipy.optimize import curve_fit
-from datetime import datetime
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 CORS(app)
@@ -123,7 +123,23 @@ def find_fit(xdata, ydata):
             "Constants":[linpopt[0], linpopt[1]]
         }
 
-                    
+# Maturity can be given 
+def parse_maturity(maturity):
+    default  = '10'
+    divider = 1
+    maturity_out = maturity
+    if maturity.lower().endswith("mo") or maturity.lower().endswith("month") or maturity.lower().endswith("months"):
+        divider = 12
+        maturity_out = f'{maturity.lower().split("mo")[0]}'
+        
+    try:
+        maturity_float = float(maturity_out)/divider
+        return f'{maturity_float}'
+    except:
+        print(f"Error Parsing maturity: {maturity}, returning {default}")
+        return default
+
+                          
 with app.app_context():
     initialise_db()
 
@@ -133,8 +149,11 @@ def latest():
     dbcon = sqlite3.connect('yields.db')
     cursor = dbcon.cursor()
 
-    maturity = request.args.get('maturity', '10')
+    maturity = parse_maturity(request.args.get('maturity', '10'))
     country = request.args.get('country', 'US')
+
+    if country != "US" or country != "UK":
+        country = "US"
 
     result = cursor.execute(
         ''' SELECT 
@@ -167,6 +186,8 @@ def latestfit():
     cursor = dbcon.cursor()
 
     country = request.args.get('country', 'US')
+    if country != "US" or country != "UK":
+        country = "US"
 
     result = cursor.execute(
         ''' SELECT 
@@ -187,10 +208,27 @@ def latestfit():
 
 @app.route("/timeseries")
 def timeseries():
-    maturity = request.args.get('maturity', '10')
-    country = request.args.get('country', 'US')
-    start_date = request.args.get('start_date', '2026-01-10')
+    start_date_default = (datetime.today() - timedelta(days=30)).strftime('%Y-%m-%d')
+    start_date = request.args.get('start_date', start_date_default)
     end_date = request.args.get('end_date', datetime.today().strftime('%Y-%m-%d'))
+
+    maturity = parse_maturity(request.args.get('maturity', '10'))
+    country = request.args.get('country', 'US')
+
+    if country != "US" or country != "UK":
+        country = "US"
+
+    try:
+        datetime.strptime(start_date, "%Y-%m-%d")
+    except:
+        print(f"invalid start date, defaulting to: {start_date_default}")
+        start_date = start_date_default
+
+    try:
+        datetime.strptime(end_date, "%Y-%m-%d")
+    except:
+        print(f"invalid end date, defaulting to: {datetime.today().strftime('%Y-%m-%d')}")
+        end_date = datetime.today().strftime('%Y-%m-%d')
 
     dbcon = sqlite3.connect('yields.db')
     cursor = dbcon.cursor()
