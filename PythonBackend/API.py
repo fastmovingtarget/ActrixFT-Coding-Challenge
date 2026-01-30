@@ -30,7 +30,6 @@ def initialise_db():
             for i in dr:
                 # if any of the constants haven't been populated for this csv
                 if country == "" or instrument == "" or maturity == 0.0:
-                    print(f'Yield: {i['Yield']}')
                     # populate them from the given values in the first row
                     if 'DGS' in i['Yield']:
                         country = 'US'
@@ -70,7 +69,6 @@ def initialise_db():
                     # UK dates are NOT in ISO format, so we have to strip and reformat them
                     if country == "UK":
                         newDate = datetime.strptime(i['Date'], "%d %b %y").strftime("%Y-%m-%d")
-                        print(newDate)
                         to_db.append((newDate, country, instrument, maturity, float(i['Yield'])))
                     else:
                         to_db.append((i['Date'], country, instrument, maturity, float(i['Yield'])))
