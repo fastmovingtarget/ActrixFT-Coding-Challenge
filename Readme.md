@@ -127,3 +127,24 @@
     - It also balances well visually, allowing both the /latest and /timeseries sections to have nice graphs to them
 - Styling
     - I find it best to style when I've got everything on the page that I need - styling's relaxing, but easy to lose track of time
+
+## Future Steps
+### Backend API
+- Error handling for non-parsable query strings
+    - Priority 1, should be a fairly simple to handle the error gracefully. I can't believe I didn't consider it.
+- Source the data programatically
+    - Having a daily tick on the backend to source the most recent data set would be a much better solution than the manual download I'm using now
+- Use Pandas for better data handling
+- Handle Month/MO units in maturity requests
+    - Obviously if I'm only running requests from the frontend they're not needed, but a REST API should be able to handle requests outside of the frontend
+- Handle non-standard dates in timeseries requests
+    - Similar to Maturity, I can't expect to be working with sanitised requests so I need to be able to handle a variety
+- Improve British Gilt dataset
+    - The data to make more accurate interpolation is clearly there as a curve is available on the BoE website, but I clearly need to do some hunting to find it
+
+### Frontend Site
+- Fix error where user is unable to enter decimals on the frontend maturity request
+- Improve Styling, Colours, implement a light/dark mode toggle
+- Graphs - Label Axis, improve axis ticks
+- Add a scatter to the fit curve to show the actual data values that we're interpolating with
+- Add possibility for multiple maturities on the time series graph (which would take an age to load, but very interesting to view)
