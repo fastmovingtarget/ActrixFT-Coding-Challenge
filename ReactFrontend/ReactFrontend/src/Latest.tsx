@@ -27,8 +27,8 @@ export function Latest(){
                     <button className={`button ${country === "UK" && 'active'}`} onClick={() => setCountry("UK")}>UK</button>
                 </div>  
                 <div>
-                    <label>Set Maturity: 
-                        <input type="number" id="latest-maturity-input" name="latest-maturity-input" min="0" max="50" defaultValue="10" onChange={(event) => {
+                    <label>Set Maturity (0.0 - 50.0): 
+                        <input type="number" id="latest-maturity-input" name="latest-maturity-input" min="0" max="50" defaultValue="10" step="any" onChange={(event) => {
                             if(event.target.checkValidity())
                                 setMaturity(parseFloat(event.target.value) || 0.0)
                             else

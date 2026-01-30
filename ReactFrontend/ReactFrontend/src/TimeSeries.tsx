@@ -32,7 +32,7 @@ export function TimeSeries(){
                     <button className={`button ${country === "UK" && 'active'}`} onClick={() => setCountry("UK")}>UK</button>
                 </div>  
                 <label>Set Maturity (0.0 - 50.0): 
-                    <input type="number" id="1" name="1" min="0" max="50" defaultValue="10" onChange={(event) => {
+                    <input type="number" id="1" name="1" min="0" max="50" defaultValue="10" step="any" onChange={(event) => {
                         if(event.target.checkValidity())
                             setMaturity(parseFloat(event.target.value) || 0.0)
                         else
