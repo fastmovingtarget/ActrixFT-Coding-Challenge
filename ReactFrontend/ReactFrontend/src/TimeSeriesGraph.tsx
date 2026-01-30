@@ -40,8 +40,6 @@ export default function TimeSeries ({timeSeries} : {timeSeries : TimeSeries}) {
 
     const dataset = timeSeries.Data.map((dataItem) => [dataItem.Date, dataItem.Yield])
 
-    console.log(dataset)
-
     const data = {
         datasets: [
             {
