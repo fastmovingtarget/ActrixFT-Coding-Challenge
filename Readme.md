@@ -141,6 +141,9 @@
     - Similar to Maturity, I can't expect to be working with sanitised requests so I need to be able to handle a variety
 - Improve British Gilt dataset
     - The data to make more accurate interpolation is clearly there as a curve is available on the BoE website, but I clearly need to do some hunting to find it
+- Improve Speed of large timeseries requests (completed post-walkthrough)
+    - Selecting the max timeseries possible ended up taking ~8s, which is far longer than expected
+        - I've used the initial timeseries curve to provide starting constants for the rest of the series. It's sped the request from ~8s to ~3s and seems to prevent the error I was seeing in October 2022
 
 ### Frontend Site
 - Fix error where user is unable to enter decimals on the frontend maturity request (completed post-walkthrough)

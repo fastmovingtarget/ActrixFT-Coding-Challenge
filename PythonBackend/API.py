@@ -91,27 +91,29 @@ def calculate_linear(maturity, grad, const):
     return maturity_yield
 
 # finds the yield for a given maturity and dataset (which is a function of Date)
-def find_yield(maturity, xdata, ydata):
+def find_yield(maturity, xdata, ydata, params = []):
     yield_out = 0.0
     #check to see if the requested maturity is in the data set, if it is then we don't have to worry about extrapolating/interpolating
     for i in range(len(xdata)):
         if xdata[i] == float(maturity):
-            return ydata[i]
-        
+            return ydata[i], None
+                
     # The Brits don't really give enough useful data (only 3 points) to plot a complex NS interpolation curve. They get a simple linear curve instead
     if(len(xdata) > 3):
-        nspopt, pcov = curve_fit(calculate_ns, xdata, ydata, p0=[0.02, 0.01, 0.01, 1.0])
-        yield_out = calculate_ns(float(maturity), nspopt[0], nspopt[1], nspopt[2], nspopt[3]).round(4)
+        if(len(params) == 0):
+            params = [0.1, 0.1, 0.1, 1.0]
+        paramopts, pcov = curve_fit(calculate_ns, xdata, ydata, p0=params)
+        yield_out = calculate_ns(float(maturity), paramopts[0], paramopts[1], paramopts[2], paramopts[3]).round(4)
     else: 
-        linpopt, pcov = curve_fit(calculate_linear, xdata, ydata, p0=[0.02, 0.01])
-        yield_out = calculate_linear(float(maturity), linpopt[0], linpopt[1]).round(4)
+        paramopts, pcov = curve_fit(calculate_linear, xdata, ydata)
+        yield_out = calculate_linear(float(maturity), paramopts[0], paramopts[1]).round(4)
 
-    return yield_out
+    return yield_out, paramopts
 
 # Finds the fit constants and the curve type
 def find_fit(xdata, ydata):
     if(len(xdata) > 3):
-        nspopt, pcov = curve_fit(calculate_ns, xdata, ydata, p0=[0.02, 0.01, 0.01, 1.0])
+        nspopt, pcov = curve_fit(calculate_ns, xdata, ydata, p0=[0.1, 0.1, 0.1, 1.0])
         return {
             "Curve":"ns",
             "Constants":[f'{nspopt[0]}', f'{nspopt[1]}', f'{nspopt[2]}', f'{nspopt[3]}']
@@ -246,18 +248,24 @@ def timeseries():
     
     date_data = []
 
+    params = []
     for date_set in result:
         xdata = json.loads(date_set[0])
         ydata = json.loads(date_set[1])
+            
         try:
-            maturity_yield = find_yield(maturity, xdata, ydata)
-        except:
-            print(f"An error occurred with the {country} data on {date_set[2]}")
+            if(len(params) == 0):
+                maturity_yield, paramopts = find_yield(maturity, xdata, ydata)
+                params = paramopts
+            else:
+                maturity_yield, paramopts = find_yield(maturity, xdata, ydata, params)
+        except Exception as e:
+            print(f"Error: {e} occurred with the {country} data on {date_set[2]}")
         else:
             date_data.append({
-                "Date": date_set[2],
-                "Yield": f'{maturity_yield}'
-            })
+                    "Date": date_set[2],
+                    "Yield": f'{maturity_yield}'
+                })
 
     response = {
             "Country":country,
