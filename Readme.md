@@ -10,6 +10,7 @@
         user@pc ~ActrixFT-Coding-Challenge/PythonBackend $ pip install flask
         user@pc ~ActrixFT-Coding-Challenge/PythonBackend $ pip install flask_cors
         user@pc ~ActrixFT-Coding-Challenge/PythonBackend $ pip install scipy
+        user@pc ~ActrixFT-Coding-Challenge/PythonBackend $ pip install pandas
     ```
  - install React Packages:
     ```bash
@@ -134,7 +135,8 @@
     - Priority 1, should be a fairly simple to handle the error gracefully. I can't believe I didn't consider it.
 - Source the data programatically
     - Having a daily tick on the backend to source the most recent data set would be a much better solution than the manual download I'm using now
-- Use Pandas for better data handling
+- Use Pandas for better data handling (completed post-walkthrough)
+    - Implemented roughly - due to the nature of flask (running on multiple threads) I'm not able to perform a single global read, I have to use a get for each API request - not sure that's optimal
 - Handle Month/MO units in maturity requests (completed post-walkthrough)
     - Obviously if I'm only running requests from the frontend they're not needed, but a REST API should be able to handle requests outside of the frontend
 - Handle non-standard dates in timeseries requests
