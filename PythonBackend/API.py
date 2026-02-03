@@ -1,4 +1,4 @@
-import sqlite3, csv, os, json, numpy as np
+import sqlite3, csv, os, json, numpy as np, pandas as pd
 from flask import Flask, request
 from flask_cors import CORS
 from scipy.optimize import curve_fit
@@ -7,6 +7,8 @@ from datetime import datetime, timedelta
 app = Flask(__name__)
 CORS(app)
 
+df = None
+
 def initialise_db():
     dbcon = sqlite3.connect('yields.db')
     cursor = dbcon.cursor()
@@ -14,67 +16,61 @@ def initialise_db():
     # Check to see if the database has already be initialised, return if it has
     res = cursor.execute(f'SELECT name FROM sqlite_master')
     if res.fetchone() is not None:
-        print("Database already initialised")
         return
 
-    cursor.execute("CREATE TABLE yields (Date TEXT, Country TEXT, Instrument TEXT, Maturity REAL, Yield REAL)")
+    dfarray = []
 
     # Check through every file in ./Data
     for file in os.listdir('./Data'):
-        with open(f'./Data/{file}', 'r') as fileData:
-            dr = csv.DictReader(fileData, fieldnames=['Date', 'Yield'])
-            to_db = []
-            country = 0
-            instrument = ""
-            maturity = 0.0
-            for i in dr:
-                # if any of the constants haven't been populated for this csv
-                if country == "" or instrument == "" or maturity == 0.0:
-                    # populate them from the given values in the first row
-                    if 'DGS' in i['Yield']:
-                        country = 'US'
-                        instrument = 'Treasury'
-                        if '1MO' in i['Yield']:
-                            maturity = 1/12
-                        elif '3MO' in i['Yield']:
-                            maturity = 0.25
-                        elif '6MO' in i['Yield']:
-                            maturity = 0.5
-                        elif '10' in i['Yield']:
-                            maturity = 10
-                        elif '20' in i['Yield']:
-                            maturity = 20
-                        elif '30' in i['Yield']:
-                            maturity = 30
-                        elif '1' in i['Yield']:
-                            maturity = 1
-                        elif '2' in i['Yield']:
-                            maturity = 2
-                        elif '5' in i['Yield']:
-                            maturity = 5
-                    if 'British' in i['Yield']:
-                        country = 'UK'
-                        instrument = 'Gilt'
-                        if '5' in i['Yield']:
-                            maturity = 5
-                        elif '10' in i['Yield']:
-                            maturity = 10
-                        elif '20' in i['Yield']:
-                            maturity = 20
-                        
-                    print(f'Country: {country}, Instrument: {instrument}, Maturity: {maturity}')
-                
-                # Just don't read the values that are blank/null
-                elif i['Yield'] != '':
-                    # UK dates are NOT in ISO format, so we have to strip and reformat them
-                    if country == "UK":
-                        newDate = datetime.strptime(i['Date'], "%d %b %y").strftime("%Y-%m-%d")
-                        to_db.append((newDate, country, instrument, maturity, float(i['Yield'])))
-                    else:
-                        to_db.append((i['Date'], country, instrument, maturity, float(i['Yield'])))
+        dataframe = pd.read_csv(f'./Data/{file}')
+        country = 0
+        instrument = ""
+        maturity = 0.0
+        if 'DGS' in dataframe.columns[1]:
+            country = 'US'
+            instrument = 'Treasury'
+            maturityStr = dataframe.columns[1].split("DGS")[1]
+            if(maturityStr.endswith("MO")):
+                maturity = float(maturityStr.split("MO")[0])/12.0
+            else:
+                maturity = float(maturityStr)
+        if 'British' in dataframe.columns[1]:
+            country = 'UK'
+            instrument = 'Gilt'
+            if '5' in dataframe.columns[1]:
+                maturity = 5
+            elif '10' in dataframe.columns[1]:
+                maturity = 10
+            elif '20' in dataframe.columns[1]:
+                maturity = 20
+            dataframe['Date'] = dataframe['Date'].map(format_date)
 
-            cursor.executemany("INSERT INTO yields VALUES(?, ?, ?, ?, ?)", to_db)
-            dbcon.commit()
+        dataframe.rename(columns={dataframe.columns[0] : "Date", dataframe.columns[1] : "Yield"}, inplace = True)
+        dataframe.insert(1, "Maturity", maturity)
+        dataframe.insert(1, "Instrument", instrument)
+        dataframe.insert(1, "Country", country)
+
+        dfarray.append(dataframe)
+            
+
+        print(f'Country: {country}, Instrument: {instrument}, Maturity: {maturity}')
+
+
+    df = pd.concat(dfarray)
+
+    df = df.dropna()
+
+    df["Date"] = pd.to_datetime(df["Date"])
+    df['Date'] = df['Date'].dt.date
+
+    if(df is None):
+        print("Error importing data: Data Frame not assigned")
+        return
+
+    df.to_sql(name="yields", con=dbcon)
+
+def format_date(old_date):
+    return datetime.strptime(old_date, "%d %b %y").strftime("%Y-%m-%d")
 
 def calculate_ns(maturity, b0, b1, b2, lm0):
     maturity_yield = (
@@ -96,7 +92,7 @@ def find_yield(maturity, xdata, ydata, params = []):
     #check to see if the requested maturity is in the data set, if it is then we don't have to worry about extrapolating/interpolating
     for i in range(len(xdata)):
         if xdata[i] == float(maturity):
-            return ydata[i], None
+            return ydata[i], []
                 
     # The Brits don't really give enough useful data (only 3 points) to plot a complex NS interpolation curve. They get a simple linear curve instead
     if(len(xdata) > 3):
@@ -149,31 +145,23 @@ with app.app_context():
 @app.route("/latest")
 def latest():
     dbcon = sqlite3.connect('yields.db')
-    cursor = dbcon.cursor()
+    df = pd.read_sql("SELECT * FROM yields", dbcon)
 
     maturity = parse_maturity(request.args.get('maturity', '10'))
     country = request.args.get('country', 'US')
 
     if country != "US" or country != "UK":
         country = "US"
+    
+    result = df[(df["Date"] == df["Date"].max()) & (df["Country"] == country)]
 
-    result = cursor.execute(
-        ''' SELECT 
-                json_group_array(Maturity) Maturities, 
-                json_group_array(Yield) Yields, 
-                Date 
-            FROM yields 
-            WHERE Country = ? 
-            GROUP BY Date
-            ORDER BY Date DESC LIMIT 1''', [country]).fetchall()[0]#there's only 1 result, so we can specify the first result here
+    xdata = result["Maturity"].values
+    ydata = result["Yield"].values
 
-    xdata = json.loads(result[0])
-    ydata = json.loads(result[1])
-
-    maturity_yield = find_yield(maturity, xdata, ydata)
+    maturity_yield, params = find_yield(maturity, xdata, ydata)
 
     response = {
-            "Date":result[2],
+            "Date":df["Date"].max(),
             "Country":country,
             "Maturity":maturity,
             "Yield": f'{maturity_yield}'
@@ -185,24 +173,16 @@ def latest():
 @app.route('/latestfit')
 def latestfit():
     dbcon = sqlite3.connect('yields.db')
-    cursor = dbcon.cursor()
+    df = pd.read_sql("SELECT * FROM yields", dbcon)
 
     country = request.args.get('country', 'US')
     if country != "US" or country != "UK":
         country = "US"
 
-    result = cursor.execute(
-        ''' SELECT 
-                json_group_array(Maturity) Maturities, 
-                json_group_array(Yield) Yields, 
-                Date 
-            FROM yields 
-            WHERE Country = ? 
-            GROUP BY Date
-            ORDER BY Date DESC LIMIT 1''', [country]).fetchall()[0]#there's only 1 result, so we can specify the first result here
+    result = df[(df["Date"] == df["Date"].max()) & (df["Country"] == country)]
 
-    xdata = json.loads(result[0])
-    ydata = json.loads(result[1])
+    xdata = result["Maturity"].values
+    ydata = result["Yield"].values
 
     fit = find_fit(xdata, ydata)
 
@@ -233,26 +213,20 @@ def timeseries():
         end_date = datetime.today().strftime('%Y-%m-%d')
 
     dbcon = sqlite3.connect('yields.db')
-    cursor = dbcon.cursor()
 
-    result = cursor.execute(
-        '''SELECT 
-            json_group_array(Maturity) Maturities,
-            json_group_array(Yield) Yields,
-            Date 
-            FROM yields 
-            WHERE Country = ? 
-            AND DATE BETWEEN ? AND ?
-            GROUP BY Date
-            ORDER BY Date DESC''', [country, start_date, end_date]).fetchall()
-    
+    df = pd.read_sql("SELECT * FROM yields", dbcon)
+    result = df[(df["Date"] > start_date) & (df["Date"] < end_date)  & (df["Country"] == country)]
+    result_grouped = result.groupby(result["Date"])
+
+    result_frame = result_grouped[["Maturity", "Yield"]].apply(pd.DataFrame)
+   
     date_data = []
-
+#
     params = []
-    for date_set in result:
-        xdata = json.loads(date_set[0])
-        ydata = json.loads(date_set[1])
-            
+    for date in result_grouped.groups:
+        xdata = result_frame.loc[date]["Maturity"].values
+        ydata = result_frame.loc[date]["Yield"].values
+           
         try:
             if(len(params) == 0):
                 maturity_yield, paramopts = find_yield(maturity, xdata, ydata)
@@ -260,10 +234,10 @@ def timeseries():
             else:
                 maturity_yield, paramopts = find_yield(maturity, xdata, ydata, params)
         except Exception as e:
-            print(f"Error: {e} occurred with the {country} data on {date_set[2]}")
+            print(f"Error: {e} occurred with the {country} data on {date}")
         else:
             date_data.append({
-                    "Date": date_set[2],
+                    "Date": date,
                     "Yield": f'{maturity_yield}'
                 })
 
