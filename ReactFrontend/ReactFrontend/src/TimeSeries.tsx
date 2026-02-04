@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 
 import {fetchTimeSeries} from './FetchTimeSeries'
 import TimeSeriesGraph from './TimeSeriesGraph';
+import {Failed, Loading} from './Placeholders';
 
 import { type TimeSeries} from './Types/Types';
 
@@ -15,11 +16,14 @@ export function TimeSeries(){
     const [maturity, setMaturity] = useState<number>(10.0);
     const [country, setCountry] = useState<"US" | "UK">("US")
     const [timeSeries, setTimeSeries] = useState<TimeSeries | null>(null)
+    const [loadStatus, setLoadStatus] = useState<"Loading" | "Success" | "Failure">("Loading")
 
     useEffect(() => {
         const prevMonthDefault = new Date();
         prevMonthDefault.setMonth(new Date().getMonth() - 1)
-        fetchTimeSeries("US", 10, prevMonthDefault, new Date(), setTimeSeries)
+        fetchTimeSeries("US", 10, prevMonthDefault, new Date(), setTimeSeries).then((result) => {
+            setLoadStatus(result)
+        })
     }, [])
 
 
@@ -64,13 +68,22 @@ export function TimeSeries(){
                     onChange={(e) => setEndDate(new Date(e.target.value))}
                 />
                 </label>
-                <button onClick={() => fetchTimeSeries(country, maturity, startDate, endDate, setTimeSeries)}>Get Time Series Data</button>
+                <button onClick={
+                    () => {
+                        setLoadStatus("Loading")
+                        fetchTimeSeries(country, maturity, startDate, endDate, setTimeSeries).then((result) => {
+                            setLoadStatus(result)
+                        })
+                    }}>
+                    Get Time Series Data</button>
             </div>
             <div className="column graph-container">
                 {
-                    timeSeries !== null ? 
+                    (timeSeries !== null && loadStatus === 'Success') ? 
                     <TimeSeriesGraph timeSeries={timeSeries}/> : 
-                    <></>
+                    loadStatus === "Loading" ? 
+                    <Loading loading={loadStatus === "Loading"}/> : 
+                    <Failed failed={loadStatus === "Failure"}/>
                 }
             </div>
         </div>
