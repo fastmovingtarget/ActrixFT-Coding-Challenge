@@ -36,6 +36,20 @@ export default function TimeSeries ({timeSeries} : {timeSeries : TimeSeries}) {
             text: `Country : ${timeSeries.Country}, Maturity : ${timeSeries.Maturity}`,
             },
         },
+        scales:{
+            y:{
+                title:{
+                    display:true,
+                    text: "Yield"
+                }
+            },
+            x:{
+                title:{
+                    display:true,
+                    text: "Date"
+                }
+            }
+        }
     };
 
     const dataset = timeSeries.Data.map((dataItem) => [dataItem.Date, dataItem.Yield])

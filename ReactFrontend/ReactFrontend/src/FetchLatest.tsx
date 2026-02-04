@@ -16,10 +16,15 @@ export const fetchLatest = async (
                 }
             }
         ).then((rawData) => {
-            rawData.json().then((data : Latest) => {
-                setYield(data)
-                resolve("Success")
-            })
+            if(!rawData.ok)
+                resolve("Failure")
+            else
+                rawData.json().then((data : Latest) => {
+                    setYield(data)
+                    resolve("Success")
+                })
+        }).catch( () => {
+            resolve("Failure")
         })
     })
     return returnPromise;

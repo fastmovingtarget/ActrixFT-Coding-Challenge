@@ -9,7 +9,6 @@ export const fetchTimeSeries = async (
 ) => {
 
     const returnPromise = new Promise<'Success' | 'Failure'>((resolve) => {
-        
         fetch(
             `http://localhost:5000/timeseries?country=${country}&maturity=${maturity}&start_date=${startDate.toISOString().substring(0,10)}&end_date=${endDate.toISOString().substring(0,10)}`,
             {
@@ -19,10 +18,17 @@ export const fetchTimeSeries = async (
                 }
             }
         ).then((rawData) => {
-            rawData.json().then((data) => {
-                setTimeSeries(data)
-                resolve("Success")
-            })
+            if(!rawData.ok){
+                console.log("Failed")
+                resolve("Failure")}
+            else
+                rawData.json().then((data) => {
+                    setTimeSeries(data)
+                    resolve("Success")
+                })
+        }).catch((error) => {
+            console.log("Fetch failed with error: " + error)
+            resolve("Failure")
         })
     })
     return returnPromise;

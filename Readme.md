@@ -15,7 +15,7 @@
  - install React Packages:
     ```bash
         user@pc ~ActrixFT-Coding-Challenge $ cd ReactFrontend/ReactFrontend
-        user@pc ~ActrixFT-Coding-Challenge/ReactFrontend/ReactFrontend $ npm install --save chart.js react-chartjs-2
+        user@pc ~ActrixFT-Coding-Challenge/ReactFrontend/ReactFrontend $ npm install -ci
     ```
 
 ## To Run
@@ -146,10 +146,12 @@
 - Improve Speed of large timeseries requests (completed post-walkthrough)
     - Selecting the max timeseries possible ended up taking ~8s, which is far longer than expected
         - I've used the initial timeseries curve to provide starting constants for the rest of the series. It's sped the request from ~8s to ~3s and seems to prevent the error I was seeing in October 2022
+- Look at caching interpolation data on API startup/data load or even just when a series is requested as a way to improve fetch speeds
 
 ### Frontend Site
 - Fix error where user is unable to enter decimals on the frontend maturity request (completed post-walkthrough)
 - Improve Styling, Colours, implement a light/dark mode toggle
-- Graphs - Label Axis, improve axis ticks
-- Add a scatter to the fit curve to show the actual data values that we're interpolating with
+- Graphs - Label Axis, improve axis ticks (completed post-walkthrough)
+- Add a scatter to the fit curve to show the actual data values that we're interpolating with (completed post-walkthrough)
 - Add possibility for multiple maturities on the time series graph (which would take an age to load, but very interesting to view)
+- Add Loading and Failed-to-get-data views for the graph components (completed post-walkthrough)

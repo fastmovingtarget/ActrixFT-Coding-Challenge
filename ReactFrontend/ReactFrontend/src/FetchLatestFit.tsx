@@ -6,7 +6,6 @@ export const fetchLatestFit = async (
 ) => {
 
     const returnPromise = new Promise<'Success' | 'Failure'>((resolve) => {
-        console.log("Getting Data")
         fetch(
             `http://localhost:5000/latestfit?country=${country}`,
             {
@@ -16,12 +15,17 @@ export const fetchLatestFit = async (
                 }
             }
         ).then((rawData) => {
-            rawData.json().then((data : LatestFit) => {
-                data.Constants = data.Constants.map((constant) => Number(constant))
+            if(!rawData.ok)
+                resolve("Failure")
+            else
+                rawData.json().then((data : LatestFit) => {
+                    data.Constants = data.Constants.map((constant) => Number(constant))
 
-                setLatestFit(data)
-                resolve("Success")
-            })
+                    setLatestFit(data)
+                    resolve("Success")
+                })
+        }).catch(() => {
+            resolve("Failure")
         })
     })
     return returnPromise;
