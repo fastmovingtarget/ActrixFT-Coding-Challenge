@@ -6,7 +6,6 @@ export const fetchLatestFit = async (
 ) => {
 
     const returnPromise = new Promise<'Success' | 'Failure'>((resolve) => {
-        console.log("Getting Data")
         fetch(
             `http://localhost:5000/latestfit?country=${country}`,
             {
