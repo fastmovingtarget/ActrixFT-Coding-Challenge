@@ -9,7 +9,7 @@ import {
   Legend,
 } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
-import { type LatestFit } from './Types/Types';
+import { type LatestFit, type Latest } from './Types/Types';
 
 ChartJS.register(
   CategoryScale,
@@ -22,7 +22,7 @@ ChartJS.register(
 );
 
 
-export default function LatestFitGraph ({latestFit} : {latestFit : LatestFit}) {
+export default function LatestFitGraph ({latestFit, latest} : {latestFit : LatestFit, latest : Latest}) {
 
     const options = {
         responsive: true,
@@ -33,11 +33,25 @@ export default function LatestFitGraph ({latestFit} : {latestFit : LatestFit}) {
             },
             title: {
                 display: true,
-                text: 'Maturity Fit Curve',
+                text: `Interpolation Curve for ${latest.Date}`,
             },
         },
         interaction:{
             mode:"nearest",
+        },
+        scales:{
+            y:{
+                title:{
+                    display:true,
+                    text: "Yield"
+                }
+            },
+            x:{
+                title:{
+                    display:true,
+                    text: "Maturity"
+                }
+            }
         }
     };
 
