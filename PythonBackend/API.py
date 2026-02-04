@@ -52,22 +52,41 @@ def initialise_db():
 
         dfarray.append(dataframe)
             
-
-        print(f'Country: {country}, Instrument: {instrument}, Maturity: {maturity}')
-
-
-    df = pd.concat(dfarray)
+    df = pd.concat(dfarray, ignore_index=True)
 
     df = df.dropna()
 
     df["Date"] = pd.to_datetime(df["Date"])
     df['Date'] = df['Date'].dt.date
 
+    groups = df.groupby(["Country", "Date"])
+
+    curve_data = []
+    params = []
+    for (country, date), group in groups:
+        xdata = group["Maturity"].values
+        ydata = group["Yield"].values
+
+        try:
+            if(len(params) == 0 ):
+                curve, constants = find_fit(xdata, ydata)
+                if(country=="US"):
+                    params = constants
+            else:
+                curve, constants = find_fit(xdata, ydata, params)
+
+            curve_data.append({"Date":date, "Country":country, "Curve":curve, "Constants":json.dumps(constants)})
+        except:
+            print("error generating curve")
+
+    curve_df = pd.DataFrame(curve_data)
+
     if(df is None):
         print("Error importing data: Data Frame not assigned")
         return
 
     df.to_sql(name="yields", con=dbcon)
+    curve_df.to_sql(name="curves", con=dbcon)
 
 def format_date(old_date):
     return datetime.strptime(old_date, "%d %b %y").strftime("%Y-%m-%d")
@@ -109,10 +128,15 @@ def find_yield(maturity, xdata, ydata, params = []):
     return yield_out, paramopts
 
 # Finds the fit constants and the curve type
-def find_fit(xdata, ydata):
+def find_fit(xdata, ydata, params = []):
     if(len(xdata) > 3):
-        nspopt, pcov = curve_fit(calculate_ns, xdata, ydata)
-        return "ns", [f'{nspopt[0]}', f'{nspopt[1]}', f'{nspopt[2]}', f'{nspopt[3]}']
+        
+        if(len(params) == 0):
+            nspopt, pcov = curve_fit(calculate_ns, xdata, ydata)
+        else:
+            nspopt, pcov = curve_fit(calculate_ns, xdata, ydata, p0=params)
+
+        return "ns", [nspopt[0], nspopt[1], nspopt[2], nspopt[3]]
         
     else: 
         linpopt, pcov = curve_fit(calculate_linear, xdata, ydata)
@@ -219,39 +243,29 @@ def timeseries():
 
     dbcon = sqlite3.connect('yields.db')
 
-    df = pd.read_sql("SELECT * FROM yields", dbcon)
-    result = df[(df["Date"] > start_date) & (df["Date"] < end_date)  & (df["Country"] == country)]
-    result_grouped = result.groupby(result["Date"])
-
-    result_frame = result_grouped[["Maturity", "Yield"]].apply(pd.DataFrame)
-   
-    date_data = []
-#
-    params = []
-    for date in result_grouped.groups:
-        xdata = result_frame.loc[date]["Maturity"].values
-        ydata = result_frame.loc[date]["Yield"].values
-           
-        try:
-            if(len(params) == 0):
-                maturity_yield, paramopts = find_yield(maturity, xdata, ydata)
-                params = paramopts
-            else:
-                maturity_yield, paramopts = find_yield(maturity, xdata, ydata, params)
-        except Exception as e:
-            print(f"Error: {e} occurred with the {country} data on {date}")
-        else:
-            date_data.append({
-                    "Date": date,
-                    "Yield": f'{maturity_yield}'
-                })
+    df = pd.read_sql(f"SELECT Date, Maturity, Yield, Country FROM yields WHERE Date > '{start_date}' AND Date <= '{end_date}' AND Country = '{country}'", dbcon)
 
     response = {
-            "Country":country,
-            "Maturity":maturity,
-            "Data":date_data
+        "Country":country,
+        "Maturity":maturity,
     }
 
+    if(df[df["Maturity"] == float(maturity)].empty):
+        curve_df = pd.read_sql(f"SELECT * FROM curves WHERE Date > '{start_date}' AND Date <= '{end_date}' AND Country = '{country}'", dbcon)
+        data_array = []
+        for index, row in curve_df.iterrows():
+            consts = [float(i) for i in json.loads(row["Constants"])]
+            if(row["Curve"] == "ns"):
+                m_yield = calculate_ns(float(maturity), consts[0], consts[1], consts[2], consts[3])
+            else:
+                m_yield = calculate_linear(float(maturity), consts[0], consts[1])
+            data_array.append({"Date":row["Date"], "Yield": m_yield})
+
+        response["Data"] = data_array
+
+    else:
+        response["Data"] = df[df["Maturity"] == float(maturity)][["Date", "Yield"]].to_dict("records")
+        
 
     return response
 
