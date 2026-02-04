@@ -97,8 +97,10 @@ def find_yield(maturity, xdata, ydata, params = []):
     # The Brits don't really give enough useful data (only 3 points) to plot a complex NS interpolation curve. They get a simple linear curve instead
     if(len(xdata) > 3):
         if(len(params) == 0):
-            params = [0.1, 0.1, 0.1, 1.0]
-        paramopts, pcov = curve_fit(calculate_ns, xdata, ydata, p0=params)
+            paramopts, pcov = curve_fit(calculate_ns, xdata, ydata)
+        else:
+            paramopts, pcov = curve_fit(calculate_ns, xdata, ydata, params)
+        
         yield_out = calculate_ns(float(maturity), paramopts[0], paramopts[1], paramopts[2], paramopts[3]).round(4)
     else: 
         paramopts, pcov = curve_fit(calculate_linear, xdata, ydata)
@@ -109,17 +111,13 @@ def find_yield(maturity, xdata, ydata, params = []):
 # Finds the fit constants and the curve type
 def find_fit(xdata, ydata):
     if(len(xdata) > 3):
-        nspopt, pcov = curve_fit(calculate_ns, xdata, ydata, p0=[0.1, 0.1, 0.1, 1.0])
-        return {
-            "Curve":"ns",
-            "Constants":[f'{nspopt[0]}', f'{nspopt[1]}', f'{nspopt[2]}', f'{nspopt[3]}']
-        }
+        nspopt, pcov = curve_fit(calculate_ns, xdata, ydata)
+        return "ns", [f'{nspopt[0]}', f'{nspopt[1]}', f'{nspopt[2]}', f'{nspopt[3]}']
+        
     else: 
-        linpopt, pcov = curve_fit(calculate_linear, xdata, ydata, p0=[0.02, 0.01])
-        return {
-            "Curve":"linear",
-            "Constants":[linpopt[0], linpopt[1]]
-        }
+        linpopt, pcov = curve_fit(calculate_linear, xdata, ydata)
+        return "linear", [linpopt[0], linpopt[1]]
+        
 
 # Maturity can be given 
 def parse_maturity(maturity):
@@ -150,7 +148,7 @@ def latest():
     maturity = parse_maturity(request.args.get('maturity', '10'))
     country = request.args.get('country', 'US')
 
-    if country != "US" or country != "UK":
+    if country != "US" and country != "UK":
         country = "US"
     
     result = df[(df["Date"] == df["Date"].max()) & (df["Country"] == country)]
@@ -176,7 +174,7 @@ def latestfit():
     df = pd.read_sql("SELECT * FROM yields", dbcon)
 
     country = request.args.get('country', 'US')
-    if country != "US" or country != "UK":
+    if country != "US" and country != "UK":
         country = "US"
 
     result = df[(df["Date"] == df["Date"].max()) & (df["Country"] == country)]
@@ -184,9 +182,16 @@ def latestfit():
     xdata = result["Maturity"].values
     ydata = result["Yield"].values
 
-    fit = find_fit(xdata, ydata)
+    type, constants = find_fit(xdata, ydata)
 
-    return fit
+    response = {
+        "Curve":type,
+        "Constants":constants,
+        "MaturityData":list(xdata),
+        "YieldData":list(ydata)
+    }
+
+    return response
 
 @app.route("/timeseries")
 def timeseries():
@@ -197,7 +202,7 @@ def timeseries():
     maturity = parse_maturity(request.args.get('maturity', '10'))
     country = request.args.get('country', 'US')
 
-    if country != "US" or country != "UK":
+    if country != "US" and country != "UK":
         country = "US"
 
     try:
