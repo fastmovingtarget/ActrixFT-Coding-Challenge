@@ -7,7 +7,9 @@ export interface Latest {
 
 export interface LatestFit {
     Curve: 'ns' | 'linear',
-    Constants: number[]
+    Constants: number[],
+    MaturityData: number[],
+    YieldData: number[]
 }
 
 export interface TimeSeries {
